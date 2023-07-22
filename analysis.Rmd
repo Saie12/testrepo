@@ -1,0 +1,203 @@
+---
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+------------------------------------------------------------------------
+
+---
+---
+title: "analysis.R"
+author: "Saie"
+date: "2023-07-05"
+output:
+  html_document:
+    theme: 
+---
+
+### Installing packages
+
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+### Importing dataset
+
+```{r}
+data <- read_csv("dailyActivity_merged.csv")
+head(data)  # View the first few rows of the dataset
+summary(data)  # View summary statistics of the variables
+```
+
+### Data Cleaning and Processing
+
+#### Impute missing values with mean
+
+```{r}
+data$TotalSteps[is.na(data$TotalSteps)] <- mean(data$TotalSteps, na.rm = TRUE)
+```
+
+#### Converting to proper format
+
+```{r}
+data$ActivityDate <- as.Date(data$ActivityDate, format = "%m/%d/%Y")
+```
+
+```{r}
+library(dplyr)
+```
+
+#### Renaming Variables
+
+```{r}
+dailyActivity_merged <- data %>%
+  rename(Total_Distance = TotalDistance)
+```
+
+#### Removing duplicates
+
+```{r}
+dailyActivity_merged <- distinct(dailyActivity_merged)
+```
+
+# Data transformation
+
+```{r}
+dailyActivity_merged$log_TotalSteps <- log(dailyActivity_merged$TotalSteps)
+```
+
+#### Creating derived variables
+
+```{r}
+daily_steps <- dailyActivity_merged %>%
+  group_by(ActivityDate) %>%
+  summarise(Avg_Steps = mean(TotalSteps))
+```
+
+#### Data aggregation
+
+```{r}
+weekly_averages <- dailyActivity_merged %>%
+  group_by(week = lubridate::week(ActivityDate)) %>%
+  summarise(Avg_Steps = mean(TotalSteps))
+```
+
+## Exploring the variables
+
+```{r}
+# Histogram 
+library(ggplot2)
+ggplot(dailyActivity_merged, aes(x = TotalSteps)) +
+  geom_histogram()
+```
+
+```{r}
+# Line Chart 
+ggplot(dailyActivity_merged, aes(x = ActivityDate, y = Total_Distance, color = ActivityDate, fill = Total_Distance)) +
+  geom_line()
+```
+
+```{r}
+# Scatter Plots
+ggplot(dailyActivity_merged, aes(x = Total_Distance, y = Calories, color = Calories, alpha = Total_Distance)) +
+  geom_point()
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+```{r}
+# Convert ActivityDate column to Date format
+dailyActivity_merged$ActivityDate <- as.Date(dailyActivity_merged$ActivityDate)
+```
+
+## Time-based Trends
+
+```{r}
+ggplot(dailyActivity_merged, aes(x = ActivityDate, y = TotalSteps, fill = ActivityDate)) +
+  geom_line() +
+  labs(x = "Date", y = "Total Steps", color = "red") +
+  ggtitle("Trends in Total Steps")
+```
+
+```{r}
+ggplot(dailyActivity_merged, aes(x = ActivityDate, y = Total_Distance)) +
+  geom_line() +
+  labs(x = "Date", y = "Total Distance", color = 'blue') +
+  ggtitle("Trends in Total Distance")
+```
+
+```{r}
+ggplot(dailyActivity_merged, aes(x = ActivityDate, y = Calories)) +
+  geom_line() +
+  labs(x = "Date", y = "Calories") +
+  ggtitle("Trends in Calories")
+```
+
+## Seasonal Patterns
+
+```{r}
+dailyActivity_merged$Month <- month(dailyActivity_merged$ActivityDate, label = TRUE)
+monthly_avg_steps <- dailyActivity_merged %>%
+  group_by(Month) %>%
+  summarize(avg_steps = mean(TotalSteps))
+```
+
+```{r}
+ggplot(monthly_avg_steps, aes(x = Month, y = avg_steps)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  labs(x = "Month", y = "Average Steps") +
+  ggtitle("Average Steps by Month")
+```
+
+# Correlations
+
+```{r}
+correlation <- cor(dailyActivity_merged$TotalSteps, dailyActivity_merged$Calories)
+print(correlation)
+```
+
+# Long-term Trends
+
+```{r}
+weekly_avg_steps <- dailyActivity_merged %>%
+  group_by(week = floor_date(ActivityDate, "week")) %>%
+  summarize(avg_steps = mean(TotalSteps))
+```
+
+```{r}
+ggplot(weekly_avg_steps, aes(x = week, y = avg_steps, color = week)) +
+  geom_line() +
+  labs(x = "Week", y = "Average Steps") +
+  ggtitle("Trends in Average Steps (Weekly)")
+```
+
+## Additional Analysis
+
+```{r}
+activity_levels <- dailyActivity_merged %>%
+  summarise(sedentary = sum(SedentaryMinutes),
+            light_activity = sum(LightlyActiveMinutes),
+            moderate_activity = sum(FairlyActiveMinutes),
+            vigorous_activity = sum(VeryActiveMinutes))
+```
+
+### Percentage of time spent in each activity level
+
+```{r}
+total_minutes <- sum(activity_levels)
+activity_levels_pct <- activity_levels / total_minutes * 100
+print(activity_levels_pct)
+```
+
+## Sedentary: 81.33%
+
+##Light Activity: 15.82% ##Moderate Activity: 1.11% ##Vigorous Activity:
+1.74% ##These percentages indicate the distribution of activity levels
+among the users in the dataset. It shows that a large portion of the
+recorded time is spent in sedentary activities, while a smaller
+percentage is allocated to light, moderate, and vigorous activities
